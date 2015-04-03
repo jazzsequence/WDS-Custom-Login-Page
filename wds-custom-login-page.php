@@ -275,12 +275,17 @@ if ( ! class_exists( 'WDS_Custom_Login_Page' ) ) {
 				'redirect'    => $redirect,
 				'id_username' => 'user',
 				'id_password' => 'pass',
-				'echo'        => $echo, // return, don't echo
+				'echo'        => false, // return, don't echo, we'll deal with echoing later
 			);
 
 			$forgot_password = '<span class="recover-password"><a href="' . wp_lostpassword_url( $redirect ) . '" title="' . __( 'Lost password', 'maintainn' ) . '">' . __( 'Lost password?', 'wds-custom-login-page' ) . '</a></span>';
 
 			// return the form
+			if ( $echo ) {
+				echo wp_login_form( $args ) . $forgot_password;
+				return;
+			}
+
 			return wp_login_form( $args ) . $forgot_password;
 		}
 
