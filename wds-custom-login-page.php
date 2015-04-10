@@ -209,10 +209,18 @@ if ( ! class_exists( 'WDS_Custom_Login_Page' ) ) {
 				return $content;
 			}
 
+			// return the post content (if there is any), the message (if there is any), and the login form with the passed args
+			return $content . $this->render_login_form();
+
+		}
+
+		/**
+		 * Get a message based on a login query string
+		 */
+		public function get_login_message() {
+
 			// get the login query string, if it exists
 			$login = ( isset( $_GET['login'] ) ) ? $_GET['login'] : 0;
-
-			$message = '';
 
 			// if the current user is already logged in, give them the opportunity to log out
 			if ( ! $login && is_user_logged_in() ) {
@@ -222,7 +230,6 @@ if ( ! class_exists( 'WDS_Custom_Login_Page' ) ) {
 				return $message;
 
 			}
-
 
 			if ( $login ) {
 
@@ -240,7 +247,7 @@ if ( ! class_exists( 'WDS_Custom_Login_Page' ) ) {
 						$message .= '<p class="login-msg">' . __( 'You have been logged out. You will be redirected to the home page in 5 seconds.', 'wds-custom-login-page' ) . '</p>';
 						$message .= '<p><a href="' . home_url() . '">' . __( 'Go there now.', 'wds-custom-login-page' ) . '</a></p>';
 						$redirect = '<script type="text/javascript">setTimeout("window.location=\'' . home_url() . '\'",5000);</script>';
-						return $content. $message . $redirect;
+						return $message . $redirect;
 
 					default :
 						break;
@@ -248,8 +255,7 @@ if ( ! class_exists( 'WDS_Custom_Login_Page' ) ) {
 
 			}
 
-			// return the post content (if there is any), the message (if there is any), and the login form with the passed args
-			return $content . $message . $this->render_login_form();
+			return;
 
 		}
 
@@ -280,13 +286,15 @@ if ( ! class_exists( 'WDS_Custom_Login_Page' ) ) {
 
 			$forgot_password = '<span class="recover-password"><a href="' . wp_lostpassword_url( $redirect ) . '" title="' . __( 'Lost password', 'maintainn' ) . '">' . __( 'Lost password?', 'wds-custom-login-page' ) . '</a></span>';
 
+			$message = $this->get_login_message();
+
 			// return the form
 			if ( $echo ) {
-				echo wp_login_form( $args ) . $forgot_password;
+				echo $message . wp_login_form( $args ) . $forgot_password;
 				return;
 			}
 
-			return wp_login_form( $args ) . $forgot_password;
+			return $message . wp_login_form( $args ) . $forgot_password;
 		}
 
 	}
