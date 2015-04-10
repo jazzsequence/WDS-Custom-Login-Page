@@ -221,13 +221,12 @@ if ( ! class_exists( 'WDS_Custom_Login_Page' ) ) {
 
 			// get the login query string, if it exists
 			$login = ( isset( $_GET['login'] ) ) ? $_GET['login'] : 0;
+			$message = '';
 
 			// if the current user is already logged in, give them the opportunity to log out
 			if ( ! $login && is_user_logged_in() ) {
 
 				$message = '<p class="login-msg">' . sprintf( __( 'You are logged in. Would you like to <a href="%s">log out</a>?', 'wds-custom-login-page' ), wp_logout_url( home_url() ) ) . '</p>';
-
-				return $message;
 
 			}
 
@@ -255,7 +254,7 @@ if ( ! class_exists( 'WDS_Custom_Login_Page' ) ) {
 
 			}
 
-			return;
+			return $message;
 
 		}
 
