@@ -160,13 +160,20 @@ function wds_login_options() {
 }
 
 /**
- * Wrapper function around cmb2_get_option
+ * Get an option from options array via key.
+ * 
  * @since  0.1.0
- * @param  string  $key Options array key
- * @return mixed        Option value
+ * @param  string $key Options array key.
+ * @return mixed       Option value
  */
 function wds_login_get_option( $key = '' ) {
-	return cmb2_get_option( wds_login_options()->key, $key );
+	$options = get_option( wds_login_options()->key );
+
+	if ( ! isset( $options[ $key ] ) ) {
+		return null;
+	}
+
+	return $options[ $key ];
 }
 
 function wds_login_page() {
@@ -174,7 +181,7 @@ function wds_login_page() {
 }
 
 function wds_login_slug() {
-	$login_slug = get_option( 'login_slug', 'login' );
+	$login_slug = wds_login_get_option( 'login_slug' );
 	$login_slug = apply_filters( 'wds_login_slug', $login_slug );
 	return $login_slug;
 }

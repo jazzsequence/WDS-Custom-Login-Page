@@ -5,11 +5,11 @@
  * Description: Plugin that adds a custom login page.
  * Author: WebDevStudios
  * Author URI: http://webdevstudios.com
- * Version: 1.0.0
+ * Version: 1.1
  * License: GPLv2
  */
 
-// Exit if accessed directly
+// Exit if accessed directly.
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -23,15 +23,18 @@ if ( ! class_exists( 'WDS_Custom_Login_Page' ) ) {
 		 */
 		public function __construct() {
 
-			// Setup some base variables for the plugin
+			// Setup some base variables for the plugin.
 			$this->basename       = plugin_basename( __FILE__ );
 			$this->directory_path = plugin_dir_path( __FILE__ );
 			$this->directory_url  = plugins_url( dirname( $this->basename ) );
 
-			// Include the options class
-			require_once( $this->directory_path . '/inc/options.php' );
+			$this->redirect_login_page = apply_filters( 'wds_clp_redirect_login_page', true );
 
-			// Activation/Deactivation Hooks
+			// Include required files.
+			require_once( $this->directory_path . '/inc/options.php' );
+			require_once( $this->directory_path . '/inc/cmb2/init.php' );
+
+			// Activation/Deactivation Hooks.
 			register_activation_hook( __FILE__, array( $this, 'activate' ) );
 			register_deactivation_hook( __FILE__, array( $this, 'deactivate' ) );
 
@@ -44,7 +47,7 @@ if ( ! class_exists( 'WDS_Custom_Login_Page' ) ) {
 		 */
 		public function do_hooks() {
 			add_action( 'wp_logout', array( $this, 'logout_page' ) );
-			add_filter( 'authenticate', array( $this, 'verify_username_password' ), 1, 3);
+			add_filter( 'authenticate', array( $this, 'verify_username_password' ), 1, 3 );
 			add_action( 'wp_login_failed', array( $this, 'login_failed' ) );
 			add_action( 'init', array( $this, 'redirect_login_page' ) );
 			add_action( 'wds_insert_login_page', array( $this, 'insert_login_page' ) );
@@ -57,8 +60,8 @@ if ( ! class_exists( 'WDS_Custom_Login_Page' ) ) {
 		 */
 		public function activate() {
 
-			// check if a login page exists, if not, create one
-			if ( !$this->get_page_by_name( 'login' ) && ! $this->get_page_by_name( wds_login_slug() ) ) {
+			// Check if a login page exists, if not, create one.
+			if ( ! $this->get_page_by_name( 'login' ) && ! $this->get_page_by_name( wds_login_slug() ) ) {
 				do_action( 'wds_insert_login_page' );
 			}
 
@@ -77,12 +80,12 @@ if ( ! class_exists( 'WDS_Custom_Login_Page' ) ) {
 		 * @return boolean
 		 */
 		public static function meets_requirements() {
-			// Make sure we have CMB so we can use it
+			// Make sure we have CMB so we can use it.
 			if ( ! defined( 'CMB2_LOADED' ) ) {
 				return false;
 			}
 
-			// We have met all requirements
+			// We have met all requirements.
 			return true;
 		}
 
@@ -92,12 +95,12 @@ if ( ! class_exists( 'WDS_Custom_Login_Page' ) ) {
 		 */
 		public function maybe_disable_plugin() {
 			if ( ! $this->meets_requirements() ) {
-				// Display our error
+				// Display our error.
 				echo '<div id="message" class="error">';
 				echo '<p>' . sprintf( __( 'WDS Simple Page Builder requires CMB2 but could not find it. The plugin has been <a href="%s">deactivated</a>. Please make sure all requirements are available.', 'wds-simple-page-builder' ), admin_url( 'plugins.php' ) ) . '</p>';
 				echo '</div>';
 
-				// Deactivate our plugin
+				// Deactivate our plugin.
 				deactivate_plugins( $this->basename );
 			}
 		}
@@ -115,10 +118,10 @@ if ( ! class_exists( 'WDS_Custom_Login_Page' ) ) {
 
 			$post_id = wp_insert_post( $page, false );
 
-			// make sure the post id exists and there was no error
+			// Make sure the post id exists and there was no error.
 			if ( $post_id && ! is_wp_error( $post_id ) ) {
 
-				// check for a login template file. page-login.php works, too, but we don't need to save that as the page template
+				// Check for a login template file. page-login.php works, too, but we don't need to save that as the page template.
 				if ( locate_template( 'template-login.php', false, false ) ) {
 					update_post_meta( $post_id, '_wp_page_template', 'template-login.php' );
 				}
@@ -135,18 +138,23 @@ if ( ! class_exists( 'WDS_Custom_Login_Page' ) ) {
 		 * Send to login page on logout
 		 */
 		public function logout_page() {
-			wp_redirect( wds_login_page() . '?login=false' );
-			exit;
+			if( $redirect = apply_filters( 'logout_redirect_url', wds_login_page() . '?login=false' ) ) {
+				wp_redirect( $redirect );
+				exit;
+		}
 		}
 
 		/**
 		 * Check if a username or password were left blank, redirect to login page if they were
 		 */
 		public function verify_username_password( $user, $username, $password ) {
+			if ( ! $this->redirect_login_page ) {
+				return $user;
+			}
 
-			// if they were actually getting here because of an empty login
+			// If they were actually getting here because of an empty login.
 			if ( '' == $username || '' == $password ) {
-				wp_redirect( wds_login_page() . "?login=empty" );
+				wp_redirect( wds_login_page() . '?login=empty' );
 				exit;
 			}
 
@@ -164,6 +172,10 @@ if ( ! class_exists( 'WDS_Custom_Login_Page' ) ) {
 		 * Redirect all login requests to...you guessed it...the login page
 		 */
 		public function redirect_login_page() {
+			if ( ! $this->redirect_login_page ) {
+				return;
+			}
+			
 			$page_viewed = basename($_SERVER['REQUEST_URI']);
 
 			if ( 'wp-login.php' == $page_viewed && $_SERVER['REQUEST_METHOD'] == 'GET') {
@@ -175,7 +187,7 @@ if ( ! class_exists( 'WDS_Custom_Login_Page' ) ) {
 		/**
 		 * Helper function to get a specific page by a page slug
 		 *
-		 * @param string $slug The slug to look for
+		 * @param string $slug The slug to look for.
 		 * @link  https://wordpress.org/support/topic/how-to-check-if-page-exists?replies=8#post-466937
 		 */
 		public function get_page_by_name( $slug = '' ) {
@@ -194,17 +206,21 @@ if ( ! class_exists( 'WDS_Custom_Login_Page' ) ) {
 		 * Default login form if there's no login template found
 		 */
 		public function insert_login_form( $content ) {
-			// bail if we aren't on the login page
+			if ( defined( 'DOING_AJAX' ) && DOING_AJAX ) {
+				return $content; // Don't do it over Ajax.
+			}
+
+			// Bail if we aren't on the login page.
 			if ( ! is_admin() && ! is_page( 'login' ) && ! is_page( wds_login_slug() ) ) {
 				return $content;
 			}
 
-			// if there's a defined login page already in the theme, let that page template deal with the login form
+			// If there's a defined login page already in the theme, let that page template deal with the login form.
 			if ( locate_template( 'page-login.php', false, false ) || locate_template( 'page-' . wds_login_slug(), false, false ) ) {
 				return $content;
 			}
 
-			// if there's a template file matching either template-login.php or template-{login page slug}.php, let that page template deal with the login form
+			// If there's a template file matching either template-login.php or template-{login page slug}.php, let that page template deal with the login form.
 			if ( 'template-login.php' == get_post_meta( get_the_ID(), '_wp_page_template', true ) || 'template-' . wds_login_slug() == get_post_meta( get_the_ID(), '_wp_page_template', true ) ) {
 				return $content;
 			}
@@ -223,7 +239,7 @@ if ( ! class_exists( 'WDS_Custom_Login_Page' ) ) {
 			$login = ( isset( $_GET['login'] ) ) ? $_GET['login'] : 0;
 			$message = '';
 
-			// if the current user is already logged in, give them the opportunity to log out
+			// If the current user is already logged in, give them the opportunity to log out.
 			if ( ! $login && is_user_logged_in() ) {
 
 				$message = '<p class="login-msg">' . sprintf( __( 'You are logged in. Would you like to <a href="%s">log out</a>?', 'wds-custom-login-page' ), wp_logout_url( home_url() ) ) . '</p>';
@@ -232,15 +248,12 @@ if ( ! class_exists( 'WDS_Custom_Login_Page' ) ) {
 
 			if ( $login ) {
 
-				switch ( $login ) {
+				$message = $this->get_message( $login );
 
-					case 'failed' :
-						$message .= '<p class="login-msg">' . __( '<strong>ERROR:</strong> Invalid username and/or password.', 'wds-custom-login-page' ) . '</p>';
-						break;
+			}
 
-					case 'empty' :
-						$message .= '<p class="login-msg">' . __( '<strong>ERROR:</strong> Username and/or Password is empty.', 'wds-custom-login-page' ) . '</p>';
-						break;
+			// Return the post content (if there is any), the message (if there is any), and the login form with the passed args.
+			return $content . $message . $this->render_login_form();
 
 					case 'false' :
 						$message .= '<p class="login-msg">' . __( 'You have been logged out. You will be redirected to the home page in 5 seconds.', 'wds-custom-login-page' ) . '</p>';
@@ -248,14 +261,42 @@ if ( ! class_exists( 'WDS_Custom_Login_Page' ) ) {
 						$redirect = '<script type="text/javascript">setTimeout("window.location=\'' . home_url() . '\'",5000);</script>';
 						return $message . $redirect;
 
-					default :
-						break;
-				}
+		/**
+		 * Return one of several possible messages depending on what the login request returns.
+		 * @param  string $login The URL query string value for the login parameter.
+		 * @return string        A message about the login attempt.
+		 */
+		public function get_message( $login = '' ) {
+			$message = '';
 
+			// Get the login query string, if it exists.
+			if ( '' == $login ) {
+				$login = ( isset( $_GET['login'] ) ) ? $_GET['login'] : 0;
 			}
 
 			return $message;
 
+			switch ( $login ) {
+
+				case 'failed' :
+					$message .= '<p class="login-msg">' . __( '<strong>ERROR:</strong> Invalid username and/or password.', 'wds-custom-login-page' ) . '</p>';
+					break;
+
+				case 'empty' :
+					$message .= '<p class="login-msg">' . __( '<strong>ERROR:</strong> Username and/or Password is empty.', 'wds-custom-login-page' ) . '</p>';
+					break;
+
+				case 'false' :
+					$message .= '<p class="login-msg">' . __( 'You have been logged out. You will be redirected to the home page in 5 seconds.', 'wds-custom-login-page' ) . '</p>';
+					$message .= '<p><a href="' . home_url() . '">' . __( 'Go there now.', 'wds-custom-login-page' ) . '</a></p>';
+					$redirect = '<script type="text/javascript">setTimeout("window.location=\'' . home_url() . '\'",5000);</script>';
+					return $message . $redirect;
+
+				default :
+					break;
+			}
+
+			return $message;
 		}
 
 		/**
@@ -266,16 +307,16 @@ if ( ! class_exists( 'WDS_Custom_Login_Page' ) ) {
 		 */
 		public function render_login_form( $redirect = '', $echo = false ) {
 
-			// if the user is already logged in, we don't need a form
+			// If the user is already logged in, we don't need a form.
 			if ( is_user_logged_in() )
 				return;
 
-			// set a default for the redirect if no value was passed
+			// Set a default for the redirect if no value was passed.
 			if ( '' == $redirect ) {
 				$redirect = home_url();
 			}
 
-			// set up the arguments
+			// Set up the arguments.
 			$args = array(
 				'redirect'    => $redirect,
 				'id_username' => 'user',
@@ -318,4 +359,16 @@ function wds_custom_login_page() {
  */
 function wds_login_form( $redirect = '', $echo = false ) {
 	return wds_custom_login_page()->render_login_form( $redirect, $echo );
+}
+
+/**
+ * Return one of several possible messages depending on what the login request returns.
+ * @return string        A message about the login attempt.
+ */
+function wds_login_form_message( $echo = false ) {
+	if ( $echo ) {
+		echo wds_custom_login_page()->get_message(); // WPCS: XSS ok.
+		return;
+	}
+	return wds_custom_login_page()->get_message();
 }
